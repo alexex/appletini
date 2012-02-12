@@ -30,7 +30,7 @@
 				<p>It's mine.</p>
 			</div>
 			<p class="nav"><a href="/blog">blog</a> // <a href="/projects">projects</a> // <a href="/about">about</a> // <a href="/contact">contact</a></p>
-			{% if current_user.is_authenticated() %}<p class="adminnav">admin: <a href="/admin/page">pages</a> // <a href="/admin/user">user</a> // <a href="https://www.google.com/analytics/web/#report/visitors-overview/a28190962w53824221p54711255/">analytics</a>{% endif %}</p>
+			{% if current_user.is_authenticated() %}<p class="adminnav"><a href="/admin">admin</a> // <a href="https://www.google.com/analytics/web/#report/visitors-overview/a28190962w53824221p54711255/">analytics</a>{% endif %}</p>
 			<div id="content">
 				{% with messages = get_flashed_messages() %}
 					{% if messages %}

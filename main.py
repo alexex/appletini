@@ -10,8 +10,12 @@ from hashlib import md5
 from textile import textile
 from datetime import datetime
 
+from flask_dashed.admin import Admin
+from flask_dashed.ext.sqlalchemy import ModelAdminModule
+
 # create the flask object
 www = Flask(__name__)
+admin = Admin(www)
 # disable debug mode
 www.debug = True
 www.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
@@ -44,7 +48,7 @@ class User(db.Model):
 	active = db.Column(db.Boolean)
 	authenticated = db.Column(db.Boolean)
 	
-	def __init__(self, email, password, firstname, lastname):
+	def __init__(self, email="", password="", firstname="", lastname=""):
 		self.email = email
 		self.password = md5(password).hexdigest()
 		self.firstname = firstname
@@ -53,7 +57,7 @@ class User(db.Model):
 		self.authenticated = False
 		
 	def __repr__(self):
-		return '<User: %s>' % self.username
+		return '<User: %s>' % self.email
 		
 	def authenticate(self, password):
 		if self.password == md5(password).hexdigest():
@@ -114,32 +118,6 @@ def logout():
 	flash('Logout succeeded.')
 	return redirect(url_for('home'))
 
-@www.route('/admin/user')
-@login_required
-def userlist():
-	pass
-
-@www.route('/admin/user/add')
-@login_required
-def useradd():
-	return useredit()
-
-@www.route('/admin/user/edit/<int:id>')
-@login_required
-def useredit(id=None):
-	pass
-	
-@www.route('/admin/user/delete/<int:id>')
-@login_required
-def userdel(id):
-	pass
-	
-@www.route('/admin/user/post', methods=['POST'])
-@login_required
-def userpost():
-	pass
-
-
 @www.route('/projects')
 def projectindex():
 	'''projects page'''
@@ -178,7 +156,7 @@ class Post(db.Model):
 	
 	author = db.Column(db.Integer, db.ForeignKey('user.id'))
 	
-	def __init__(self, title, body, author):
+	def __init__(self, title="", body="", author=""):
 		self.title = title
 		self.body = body
 		self.created = datetime.utcnow()
@@ -187,6 +165,16 @@ class Post(db.Model):
 	def __repr__(self):
 		return '<Post: %r>' % self.title
 		
+class PostModule(ModelAdminModule):
+	model = Post
+	db_session = db.session
+
+post_module = admin.register_module(PostModule, '/posts', 'posts', 'Posts')
+
+@post_module.secure(http_code=401)
+def login_required():
+	return current_user.is_authenticated()
+
 @www.route('/blog')
 def postindex():
 	posts = Post.query.order_by(desc('created')).all()
@@ -213,44 +201,6 @@ def postatom():
 		post.author_name = author.firstname + ' ' + author.lastname
 		feed.add(post.title, textile(post.body), content_type='html', author=post.author_name, url=url_for('postshow', id=post.id), id=post.id, updated=post.created, published=post.created)
 	return feed.get_response()
-	
-@www.route('/admin/post/add')
-@login_required
-def postadd():
-	return postedit()
-	
-@www.route('/admin/post/edit/<int:id>')
-@login_required
-def postedit(id=None):
-	if id is None:
-		return render_template('blog/edit.html')
-	else:
-		post = Post.query.filter_by(id=id).first_or_404()
-		return render_template('blog/edit.html', body=post.body, title=post.title, id=post.id)
-
-@www.route('/admin/post/post', methods=['POST'])
-@login_required
-def postpost():
-	if request.form['id'] == '':
-		post = Post(title=request.form['title'], body=request.form['body'], author=current_user.get_id())
-		db.session.add(post)
-	else:
-		post = Post.query.filter_by(id=request.form['id']).first_or_404()
-		post.title = request.form['title']
-		post.body = request.form['body']
-	db.session.commit()
-	flash('Post saved.')
-	return redirect(url_for('postindex'))
-
-@www.route('/admin/post/delete/<int:id>')
-@login_required
-def postdel(id):
-	post = Post.query.filter_by(id=id).first_or_404()
-	db.session.delete(post)
-	db.session.commit()
-	flash('Post deleted.')
-	return redirect(url_for('postindex'))
-
 
 
 class Page(db.Model):
@@ -260,7 +210,7 @@ class Page(db.Model):
 	title = db.Column(db.String(80))
 	body = db.Column(db.Text)
 	
-	def __init__(self, path, title, body):
+	def __init__(self, path="", title="", body=""):
 		self.path = path
 		self.title = title
 		self.body = body
@@ -268,49 +218,15 @@ class Page(db.Model):
 	def __repr__(self):
 		return '<Page: %r>' % self.path
 
-@www.route('/admin/page')
-@login_required
-def pageindex():
-	return pageadmin()
-	
-@www.route('/admin/page/add')
-@login_required
-def pageadd():
-	return render_template('pages/edit.html')
-	
-@www.route('/admin/page/delete/<int:id>')
-@login_required
-def pagedel(id):
-	page = Page.query.filter_by(id=id).first_or_404()
-	db.session.delete(page)
-	db.session.commit()
-	flash('Page deleted.')
-	return redirect(url_for('pageindex'))
+class PageModule(ModelAdminModule):
+	model = Page
+	db_session = db.session
 
-@www.route('/admin/page/post', methods=['POST'])
-@login_required
-def pagepost():
-	if request.form['id'] == '':
-		page = Page(path=request.form['path'], title=request.form['title'], body=request.form['body'])
-		db.session.add(page)
-	else:
-		page = Page.query.filter_by(id=request.form['id']).first_or_404()
-		page.path = request.form['path']
-		page.title = request.form['title']
-		page.body = request.form['body']
-	db.session.commit()
-	flash('Page saved.')
-	return redirect(url_for('pageindex'))
+page_module = admin.register_module(PageModule, '/pages', 'pages', 'Pages')
 
-@www.route('/admin/page/edit/<int:id>')
-@login_required
-def pageadmin(id=None):
-	if id is None:
-		pages = Page.query.order_by('id').all()
-		return render_template('pages/index.html', pages=pages)
-	else:
-		page = Page.query.filter_by(id=id).first_or_404()
-		return render_template('pages/edit.html', title=page.title, path=page.path, body=page.body, id=page.id)
+@page_module.secure(http_code=401)
+def login_required():
+	return current_user.is_authenticated()
 
 @www.route('/<path>')
 def pageshow(path):
