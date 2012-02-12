@@ -14,6 +14,8 @@ from datetime import datetime
 www = Flask(__name__)
 # disable debug mode
 www.debug = True
+www.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+www.config['SECRET_KEY'] = "foobar"
 
 #  this is some magic to hide secret config options
 try:
