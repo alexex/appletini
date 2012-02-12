@@ -34,8 +34,8 @@ login.setup_app(www, add_context_processor=True)
 login.login_view = 'login'
 
 
-# login & user stuff
 class User(db.Model):
+	'''login & user stuff'''
 	id = db.Column(db.Integer, primary_key=True)
 	email = db.Column(db.String(60), unique=True)
 	password = db.Column(db.String(32))
@@ -140,16 +140,16 @@ def userpost():
 	pass
 
 
-# projects page
 @www.route('/projects')
 def projectindex():
+	'''projects page'''
 	return render_template('comingsoon.html', what='Projects')
 
 
 
-# contact app
 @www.route('/contact', methods=['GET', 'POST'])
 def contact():
+	'''contact app'''
 	if request.method == 'POST':
 		if request.form['name'] == '':
 			flash('Please enter a valid name.')
@@ -204,9 +204,9 @@ def postshow(id):
 	post.body = textile(post.body)
 	return render_template('blog/show.html', post=post)
 	
-# atom feed for my blog
 @www.route('/blog/atom')
 def postatom():
+	'''atom feed for my blog'''
 	feed = AtomFeed('julo.ch', feed_url=request.url, url=request.host_url, subtitle='It\'s mine.')
 	for post in Post.query.order_by(desc('created')).limit(10).all():
 		author = User.query.get(post.author)
@@ -253,8 +253,8 @@ def postdel(id):
 
 
 
-# own textile flatpages stuff
 class Page(db.Model):
+	'''own textile flatpages stuff'''
 	id = db.Column(db.Integer, primary_key=True)
 	path = db.Column(db.String(80))
 	title = db.Column(db.String(80))
@@ -320,17 +320,17 @@ def pageshow(path):
 
 # stuff independent of the sections
 
-# home page
 @www.route('/')
 def home():
+	'''home page'''
 	return redirect(url_for('postindex'))
 
 # create non existent tables
 db.create_all()
 
-# 404 page
 @www.errorhandler(404)
 def page_not_found(error):
+	'''404 page'''
 	return render_template('pagenotfound.html'), 404
 	
 # run the developement server
